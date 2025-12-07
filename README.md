@@ -96,15 +96,62 @@ pip install albumentations opencv-python tqdm pandas matplotlib
 ```
 
 ### 驗證安裝
+
+運行以下程式碼確認安裝成功：
+
 ```python
 import torch
 print(f"PyTorch 版本: {torch.__version__}")
 print(f"CUDA 可用: {torch.cuda.is_available()}")
 if torch.cuda.is_available():
+    print(f"CUDA 版本: {torch.version.cuda}")
     print(f"GPU 名稱: {torch.cuda.get_device_name(0)}")
+    print(f"GPU 記憶體: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+```
+
+**預期輸出範例：**
+```
+PyTorch 版本: 2.5.1+cu121
+CUDA 可用: True
+CUDA 版本: 12.1
+GPU 名稱: NVIDIA GeForce GTX 960
+GPU 記憶體: 4.00 GB
+```
+
+### 📌 套件版本說明
+
+本專案的 `requirements.txt` 已鎖定為經過測試的穩定版本：
+
+```txt
+torch==2.5.1
+torchvision==0.20.1
+numpy==2.0.1
+opencv-python==4.12.0.88
+Pillow==11.1.0
+matplotlib==3.10.7
+albumentations==2.0.8
+tqdm==4.67.1
+pandas==2.3.3
+scikit-learn==1.7.2
+```
+
+**關於 CUDA 版本：**
+- 如果您的系統有 CUDA 12.1，`pip install torch==2.5.1` 會自動安裝 `torch-2.5.1+cu121`
+- 如果您的系統有 CUDA 11.8，會自動安裝 `torch-2.5.1+cu118`
+- 如果沒有 CUDA，會安裝 CPU 版本
+- 因此 requirements.txt 不需要指定 `+cu121` 後綴
+
+**驗證套件版本：**
+```bash
+# Windows PowerShell
+pip list | Select-String "torch|albumentations|opencv|numpy|pandas|matplotlib|tqdm|Pillow|scikit"
+
+# Linux/Mac
+pip list | grep -E "torch|albumentations|opencv|numpy|pandas|matplotlib|tqdm|Pillow|scikit"
 ```
 
 ### Windows 特別注意事項
+
 本專案已針對 Windows 系統優化，解決了以下問題：
 - ✅ OpenMP 衝突問題
 - ✅ DataLoader 多進程問題
@@ -515,6 +562,11 @@ Total Loss = 0.5 × Dice Loss + 0.5 × BCE Loss
 
 ### 完成日期
 2025-12-07
+
+### 最後更新
+- **2025-12-07**: 套件版本已鎖定為經測試的穩定版本（使用 `==` 精確版本）
+- **2025-12-06**: CUDA Timeout 問題解決方案完成
+- **2025-12-05**: GPU 訓練環境設定完成
 
 ---
 
