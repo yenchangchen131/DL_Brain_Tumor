@@ -21,7 +21,7 @@
 | **brain_tumor_complete_size448.ipynb** | 448×448 | GTX 960/1060 | ⭐ **推薦** - 已優化，避免 CUDA timeout |
 | **brain_tumor_complete_size512.ipynb** | 512×512 | GTX 1070/1080 | 中等版本 |
 | **brain_tumor_complete.ipynb** | 640×640 | RTX 3080+ | 原始版本（高階 GPU） |
-| **code.ipynb** | - | - | 早期開發版本（可刪除） |
+| **code.ipynb** | - | - | 早期開發版本 |
 
 ---
 
