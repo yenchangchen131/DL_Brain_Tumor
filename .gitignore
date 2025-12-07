@@ -1,0 +1,77 @@
+# 大型模型檔案（超過 100MB 不應上傳到 GitHub）
+models/*.pth
+models/*.pt
+models/*.h5
+models/*.onnx
+*.pth
+*.pt
+
+# 訓練結果和檢查點
+results/
+checkpoints/
+runs/
+logs/
+
+# 資料集（太大，應該另外下載）
+train/
+valid/
+test/
+data/
+dataset/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.coco.json
+
+# Python 相關
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+*.ipynb_checkpoints
+
+# 虛擬環境
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 作業系統
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 臨時檔案
+*.tmp
+*.temp
+*.log
+*.cache
