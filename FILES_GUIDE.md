@@ -18,10 +18,12 @@
 
 | 檔案 | 圖像大小 | 適用 GPU | 說明 |
 |-----|---------|---------|------|
-| **brain_tumor_complete_size448.ipynb** | 448×448 | GTX 960/1060 | ⭐ **推薦** - 已優化，避免 CUDA timeout |
+| **brain_tumor_integrated.ipynb** | 448×448 | All GPUs | ⭐ **最新推薦** - 完整流程（資料探索+訓練） |
+| **brain_tumor_complete_size448.ipynb** | 448×448 | GTX 960/1060 | 已優化，避免 CUDA timeout |
 | **brain_tumor_complete_size512.ipynb** | 512×512 | GTX 1070/1080 | 中等版本 |
 | **brain_tumor_complete.ipynb** | 640×640 | RTX 3080+ | 原始版本（高階 GPU） |
-| **code.ipynb** | - | - | 早期開發版本 |
+| **code.ipynb** | - | - | 資料探索版本 |
+
 
 ---
 
@@ -39,6 +41,9 @@
 | **check_gpu.py** | 檢查 GPU 和 CUDA 設定 |
 | **notebook_guide.py** | Notebook 執行指南（參考用） |
 | **reduce_image_size_fix.py** | 自動修改 notebook 圖像大小的工具 |
+| **clean_valid_test.py** | 資料清理工具（驗證集和測試集） |
+| **merge_notebooks.py** | Notebook 整合工具 |
+
 
 ### 測試腳本（可刪除）
 | 檔案 | 說明 |
@@ -64,12 +69,13 @@
 ### 資料目錄
 | 目錄 | 說明 |
 |-----|------|
-| **train/** | 訓練集（1,504 張影像） |
-| **valid/** | 驗證集（214 張影像） |
-| **test/** | 測試集（75 張影像） |
+| **train/** | 訓練集（1,502 張影像）|
+| **valid/** | 驗證集（429 張影像） |
+| **test/** | 測試集（215 張影像） |
 
 每個目錄包含：
-- `_annotations.coco.json` - COCO 格式標註檔
+- `_annotations.coco.json` - COCO 格式標註檔（原始）
+- `_annotations.coco.cleaned.json` - ⭐ **清理後的標註檔**（推薦使用）
 - `*.jpg` - 影像檔案
 
 ### 輸出目錄
@@ -165,4 +171,4 @@ image_1380_original.png
 
 ---
 
-*最後更新: 2025-12-07*
+*最後更新: 2025-12-08*
