@@ -1,293 +1,145 @@
-# 腦腫瘤影像分割 - 整合版本 (SMP + 先進技術)
+這是一份根據您提供的 `brain_tumor.ipynb` 程式碼內容所撰寫的 README 文件。我參考了您上傳的 `README.md` 風格，使用了 Emoji 與清晰的結構來呈現。
 
-本專案整合了 `notebookadfcb42d18.ipynb` 中的先進技術到 `brain_tumor_integrated_backup.ipynb`。
+-----
 
-## 🎯 整合的技術特色
+# 🧠 Brain Tumor Detection - 腦腫瘤影像分割專案
 
-### 1. **SMP Library (segmentation_models_pytorch)**
-- 使用預訓練的 **UNet++** 架構（比原始 UNet 更強大）
-- **ResNet34** 作為 encoder backbone（ImageNet 預訓練權重）
-- 更好的特徵提取能力
+本專案提供了一套完整的腦腫瘤 MRI 影像分割流程（Segmentation Pipeline），從資料集的清理、前處理，到使用先進的深度學習模型進行訓練、評估與視覺化。
 
-### 2. **Mixed Precision Training (AMP)**
+## 🎯 專案特色
+
+本程式碼整合了資料清理與深度學習模型訓練，主要特色如下：
+
+### 1\. **自動化資料清理 (Data Cleaning)**
+
+  - 自動載入 COCO 格式的標註檔案（`_annotations.coco.json`）。
+  - **異常檢測**：識別並移除無標註或重複標註的異常圖片。
+  - **自動修正**：將清理後的資料儲存為 `.cleaned.json`，確保訓練資料的品質。
+
+### 2\. **強大的模型架構 (SMP U-Net++)**
+
+  - **架構**：使用 `segmentation_models_pytorch` (SMP) 函式庫中的 **U-Net++**。
+  - **Backbone**：採用 **ResNet34** 作為編碼器 (Encoder)，並載入 **ImageNet** 預訓練權重，以加快收斂速度並提升特徵提取能力。
+
+### 3\. **混合精度訓練 (Mixed Precision Training)**
+
+  - 實作 `torch.amp.autocast` 與 `GradScaler`。
+  - **優勢**：在保持模型精度的同時，顯著減少 GPU 記憶體使用量並加速訓練過程。
+
+### 4\. **複合損失函數 (Combined Loss)**
+
+結合了兩種損失函數以優化分割效果：
+
+  - **Focal Loss**：專注於難以分類的樣本，解決正負樣本不平衡問題。
+  - **Dice Loss**：直接優化分割任務的核心指標（重疊率）。
+  - **公式**：`Loss = 0.5 * FocalLoss + 0.5 * DiceLoss`
+
+### 5\. **動態學習率調整**
+
+  - 使用 `ReduceLROnPlateau` 排程器。
+  - 當驗證集的 Dice Score 停止提升時，自動降低學習率，幫助模型跳出局部最佳解。
+
+### 6\. **最佳閾值搜尋 (Threshold Tuning)**
+
+  - 訓練完成後，不會直接使用預設的 0.5，而是在驗證集上自動搜尋能讓 Dice Score 最高的**最佳閾值 (Best Threshold)**，進一步提升測試集表現。
+
+-----
+
+## 🛠️ 執行流程 (Pipeline)
+
+### Step 1: 環境與資料準備
+
+程式會自動檢查 GPU 可用性（支援 CUDA），並設定隨機種子以確保結果可重現。
+
+  - **資料增強**：使用 `Albumentations` 進行豐富的圖像增強，包括：
+      - `ElasticTransform` (彈性變形)
+      - `GaussianBlur` (高斯模糊)
+      - `RandomBrightnessContrast` (亮度對比調整)
+      - 翻轉與旋轉
+
+### Step 2: 資料清理
+
+呼叫 `clean_and_analyze_data()` 函數：
+
+1.  分析 Train/Valid/Test 資料集。
+2.  移除異常 ID（如多重標註或無標註）。
+3.  產生 `_annotations.coco.cleaned.json`。
+
+### Step 3: 模型訓練
+
+呼叫 `train_eval_loop()` 函數開始訓練：
+
+  - **Optimizer**: Adam (lr=1e-4)
+  - **Epochs**: 預設 100 (包含 Early Stopping 機制，Patience=15)
+  - **儲存模型**: 自動儲存驗證集 Dice Score 最高的模型為 `best_model.pth`。
+
+### Step 4: 評估與測試
+
+1.  **載入權重**: 載入 `best_model.pth`。
+2.  **尋找閾值**: 使用 `find_best_threshold()` 在驗證集上找出最佳切分點。
+3.  **測試集評估**: 使用最佳閾值在測試集上計算最終指標（Dice, IoU, Precision, Recall, F1, Accuracy）。
+
+### Step 5: 視覺化
+
+使用 `visualize_predictions()` 隨機抽取樣本，並排顯示：
+
+  - 原始 MRI 影像
+  - 真實遮罩 (Ground Truth)
+  - 模型預測 (Prediction)
+  - 疊加比較圖 (Overlay)
+
+-----
+
+## 📊 效能表現 (範例)
+
+根據訓練日誌，模型在測試集上的表現如下：
+
+| Metric | Score |
+|--------|-------|
+| **Mean Dice Score** | **0.8106** |
+| Mean IoU Score | 0.7141 |
+| Mean Precision | 0.8268 |
+| Mean Recall | 0.8447 |
+| Mean Accuracy | **98.70%** |
+
+*(數據基於最佳閾值 Thr=0.50)*
+
+-----
+
+## 💻 程式碼片段
+
+### 模型建構
+
 ```python
-from torch.amp import autocast, GradScaler
+import segmentation_models_pytorch as smp
 
-scaler = GradScaler('cuda')
+model = smp.UnetPlusPlus(
+    encoder_name="resnet34",
+    encoder_weights="imagenet",
+    in_channels=3,
+    classes=1
+)
+```
 
-with autocast('cuda'):
-    outputs = model(images)
-    loss = criterion(outputs, masks)
+### 訓練迴圈 (AMP)
+
+```python
+scaler = GradScaler()
+
+with autocast():
+    outputs = model(imgs)
+    loss = combined_loss(outputs, masks)
 
 scaler.scale(loss).backward()
 scaler.step(optimizer)
 scaler.update()
 ```
-- 加速訓練約 2-3 倍
-- 降低記憶體使用約 40-50%
-- 幾乎不影響精度
 
-### 3. **AdamW Optimizer**
-```python
-optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
-```
-- 比 Adam 更好的正則化
-- weight decay 防止過擬合
+## 📋 需求套件
 
-### 4. **ReduceLROnPlateau Scheduler**
-```python
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode='max', factor=0.5, patience=10
-)
-```
-- 自動調整學習率
-- 當驗證指標停止改善時降低學習率
-
-### 5. **進階資料增強 (Albumentations)**
-```python
-train_transform = A.Compose([
-    A.Resize(256, 256),
-    A.HorizontalFlip(p=0.5),
-    A.VerticalFlip(p=0.5),
-    A.RandomRotate90(p=0.5),
-    A.Affine(scale=(0.9, 1.1), translate_percent=(0.1, 0.1), 
-             rotate=(-15, 15), p=0.5),
-    A.ElasticTransform(p=0.3),      # 新增
-    A.GridDistortion(p=0.3),         # 新增
-    A.RandomBrightnessContrast(p=0.5),
-    A.ColorJitter(p=0.5),            # 新增
-    A.GaussNoise(p=0.2),
-    A.Normalize(mean=(0.485, 0.456, 0.406), 
-                std=(0.229, 0.224, 0.225)),
-    ToTensorV2()
-])
-```
-
-### 6. **Focal Tversky Loss（可選）**
-```python
-class FocalTverskyLoss(nn.Module):
-    def __init__(self, alpha=0.7, beta=0.3, gamma=4/3):
-        # 對於不平衡資料特別有效
-```
-
-## 📊 技術對比
-
-| 特性 | 原版本 | 整合版本 |
-|------|--------|----------|
-| 模型架構 | 自定義 UNet | **SMP UNet++ + ResNet34** |
-| 預訓練權重 | ❌ 無 | ✅ ImageNet |
-| Mixed Precision | ❌ 無 | ✅ torch.amp |
-| 優化器 | Adam | **AdamW** (更好的正則化) |
-| 學習率調整 | 手動 | **ReduceLROnPlateau** (自動) |
-| 資料增強 | 基本 | **進階** (Affine, Elastic, Grid) |
-| 訓練速度 | 基準 | **快 2-3 倍** ⚡ |
-| 記憶體使用 | 基準 | **少 40-50%** 💾 |
-
-## 🚀 快速開始
-
-### 1. 安裝必要套件
-
-```bash
-pip install segmentation-models-pytorch
-pip install albumentations
-pip install opencv-python
-pip install torch torchvision
-```
-
-或使用 requirements:
-
-```bash
-pip install -r requirements_smp.txt
-```
-
-### 2. 執行訓練
-
-```bash
-python brain_tumor_integrated_smp.py
-```
-
-### 3. 自訂參數
-
-在檔案中修改這些超參數：
-
-```python
-# 超參數設定
-IMG_SIZE = 256        # 影像大小（可改為 384 或 512）
-BATCH_SIZE = 16       # 批次大小（依 GPU 記憶體調整）
-EPOCHS = 80           # 訓練輪數
-LR = 1e-4            # 學習率
-NUM_WORKERS = 4      # DataLoader 工作執行緒數
-```
-
-## 📁 專案結構
-
-```
-DL_Brain_Tumor/
-├── train/
-│   ├── *.jpg                          # 訓練影像
-│   └── _annotations.coco.json         # COCO 格式標註
-├── valid/
-│   ├── *.jpg
-│   └── _annotations.coco.json
-├── test/
-│   ├── *.jpg
-│   └── _annotations.coco.json
-├── brain_tumor_integrated_smp.py      # ⭐ 整合版訓練腳本
-├── brain_tumor_integrated_backup.ipynb # 原始 notebook
-├── notebookadfcb42d18.ipynb           # 參考 notebook
-├── unet_plusplus_best.pth             # 訓練好的模型
-└── training_history.png               # 訓練曲線圖
-```
-
-## 🎓 主要差異說明
-
-### UNet vs UNet++ with ResNet34
-
-**原版 UNet:**
-```python
-class UNet(nn.Module):
-    def __init__(self, in_channels=3, out_channels=1):
-        # 從頭開始訓練
-        # 約 31M 參數
-```
-
-**整合版 UNet++ + ResNet34:**
-```python
-model = smp.UnetPlusPlus(
-    encoder_name='resnet34',      # 預訓練的 ResNet34
-    encoder_weights='imagenet',   # ImageNet 權重
-    in_channels=3,
-    classes=1,
-)
-# 更好的特徵提取
-# 更快的收斂
-# 更高的精度
-```
-
-### 訓練循環改進
-
-**原版:**
-```python
-def train_one_epoch(model, loader, criterion, optimizer, device):
-    model.train()
-    for images, masks in loader:
-        outputs = model(images)
-        loss = criterion(outputs, masks)
-        loss.backward()
-        optimizer.step()
-```
-
-**整合版 (Mixed Precision):**
-```python
-def train_one_epoch(model, loader, criterion, optimizer, scaler, device):
-    model.train()
-    for images, masks in loader:
-        with autocast('cuda'):  # 🔥 Mixed Precision
-            outputs = model(images)
-            loss = criterion(outputs, masks)
-        
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
-```
-
-## 🔧 常見問題
-
-### Q1: CUDA Out of Memory 怎麼辦？
-
-**解決方案 1: 降低 BATCH_SIZE**
-```python
-BATCH_SIZE = 8  # 從 16 降到 8
-```
-
-**解決方案 2: 降低影像大小**
-```python
-IMG_SIZE = 224  # 從 256 降到 224
-```
-
-**解決方案 3: 使用 Gradient Accumulation**
-```python
-# 每 2 個 batch 才更新一次參數
-accumulation_steps = 2
-```
-
-### Q2: 訓練太慢怎麼辦？
-
-確保：
-- ✅ 使用 GPU (`DEVICE = "cuda"`)
-- ✅ 使用 Mixed Precision Training
-- ✅ 設定 `pin_memory=True` 在 DataLoader
-- ✅ 調整 `NUM_WORKERS` (通常是 CPU 核心數)
-
-### Q3: 如何使用訓練好的模型？
-
-```python
-import torch
-import segmentation_models_pytorch as smp
-
-# 載入模型
-model = smp.UnetPlusPlus(
-    encoder_name='resnet34',
-    encoder_weights=None,  # 不需要預訓練權重
-    in_channels=3,
-    classes=1,
-)
-model.load_state_dict(torch.load('unet_plusplus_best.pth'))
-model.eval()
-
-# 預測
-with torch.no_grad():
-    output = model(image_tensor)
-    pred_mask = torch.sigmoid(output) > 0.5
-```
-
-## 📈 預期效果
-
-使用這些技術後，你應該能看到：
-
-- ✅ **更快的訓練速度** (約快 2-3 倍)
-- ✅ **更低的記憶體使用** (約少 40-50%)
-- ✅ **更高的分割精度** (Dice Score 提升 2-5%)
-- ✅ **更穩定的訓練** (學習率自動調整)
-- ✅ **更快的收斂** (ImageNet 預訓練權重)
-
-## 🎯 訓練建議
-
-1. **先用小圖訓練快速驗證**
-   ```python
-   IMG_SIZE = 224
-   EPOCHS = 10
-   ```
-
-2. **然後用中圖訓練**
-   ```python
-   IMG_SIZE = 256
-   EPOCHS = 80
-   ```
-
-3. **最後用大圖 fine-tune**
-   ```python
-   IMG_SIZE = 384 或 512
-   EPOCHS = 20
-   LR = 1e-5  # 較小的學習率
-   ```
-
-## 📚 參考資料
-
-- [Segmentation Models PyTorch](https://github.com/qubvel/segmentation_models.pytorch)
-- [Albumentations Documentation](https://albumentations.ai/)
-- [PyTorch AMP Tutorial](https://pytorch.org/docs/stable/amp.html)
-- [UNet++ Paper](https://arxiv.org/abs/1807.10165)
-
-## 🙏 致謝
-
-本專案整合了以下技術：
-- `notebookadfcb42d18.ipynb` 提供的先進架構和訓練技巧
-- `brain_tumor_integrated_backup.ipynb` 的完整資料處理流程
-- Segmentation Models PyTorch 團隊的優秀工作
-
----
-
-**作者**: YourName  
-**建立日期**: 2025-12-09  
-**版本**: 1.0 - SMP 整合版
+  - `torch`
+  - `segmentation-models-pytorch`
+  - `albumentations`
+  - `opencv-python`
+  - `matplotlib`
+  - `tqdm`
