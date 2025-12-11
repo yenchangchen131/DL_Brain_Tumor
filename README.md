@@ -1,7 +1,3 @@
-這是一份根據您提供的 `brain_tumor.ipynb` 程式碼內容所撰寫的 README 文件。我參考了您上傳的 `README.md` 風格，使用了 Emoji 與清晰的結構來呈現。
-
------
-
 # 🧠 Brain Tumor Detection - 腦腫瘤影像分割專案
 
 本專案提供了一套完整的腦腫瘤 MRI 影像分割流程（Segmentation Pipeline），從資料集的清理、前處理，到使用先進的深度學習模型進行訓練、評估與視覺化。
