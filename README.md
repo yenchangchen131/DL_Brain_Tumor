@@ -77,7 +77,7 @@ pip install torch opencv-python albumentations segmentation-models-pytorch matpl
 
 * Dataset 類別：`BrainTumorDataset(Dataset)`
 
-  * 讀取影像、依 COCO polygon 生成 mask
+  * 讀取影像、依 COCO polygon 的 segmentation生成 mask
   * 支援讀取 cleaned 檔案，若 cleaned 不存在會回退讀取原始 JSON
 * DataLoader 建立：`get_loaders(batch_size=16, num_workers=4)`
 
